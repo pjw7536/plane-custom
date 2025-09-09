@@ -20,6 +20,8 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 import useLocalStorage from "@/hooks/use-local-storage";
 // plane-web imports
 import { SidebarItem } from "@/plane-web/components/workspace/sidebar/sidebar-item";
+import { GlobalSidebarItem } from "@/plane-web/components/workspace/sidebar/global-sidebar-item";
+import { WORKSPACE_SIDEBAR_APPS_NAVIGATION_ITEMS_LINKS } from "@plane/constants";
 
 export const SidebarMenuItems = observer(() => {
   // routers
@@ -60,6 +62,44 @@ export const SidebarMenuItems = observer(() => {
           <SidebarItem key={`static_${_index}`} item={item} />
         ))}
       </div>
+      {/* Apps group - placed before Workspace section */}
+      <Disclosure as="div" className="flex flex-col" defaultOpen={true}>
+        <div className="group w-full flex items-center justify-between px-2 py-1.5 rounded text-custom-sidebar-text-400 hover:bg-custom-sidebar-background-90">
+          <Disclosure.Button
+            as="button"
+            type="button"
+            className="w-full flex items-center gap-1 whitespace-nowrap text-left text-sm font-semibold text-custom-sidebar-text-400"
+            aria-label={t("apps")}
+          >
+            <span className="text-sm font-semibold">{t("apps")}</span>
+          </Disclosure.Button>
+          <div className="flex items-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto">
+            <Disclosure.Button
+              as="button"
+              type="button"
+              className="p-0.5 rounded hover:bg-custom-sidebar-background-80 flex-shrink-0"
+              aria-label={t("apps")}
+            >
+              <ChevronRight className={cn("flex-shrink-0 size-3 transition-all rotate-90")} />
+            </Disclosure.Button>
+          </div>
+        </div>
+        <Transition
+          show={true}
+          enter="transition duration-100 ease-out"
+          enterFrom="transform scale-95 opacity-0"
+          enterTo="transform scale-100 opacity-100"
+          leave="transition duration-75 ease-out"
+          leaveFrom="transform scale-100 opacity-100"
+          leaveTo="transform scale-95 opacity-0"
+        >
+          <Disclosure.Panel as="div" className="flex flex-col gap-0.5" static>
+            {WORKSPACE_SIDEBAR_APPS_NAVIGATION_ITEMS_LINKS.map((item, _index) => (
+              <GlobalSidebarItem key={`apps_${_index}`} item={item} />
+            ))}
+          </Disclosure.Panel>
+        </Transition>
+      </Disclosure>
       <Disclosure as="div" className="flex flex-col" defaultOpen={!!isWorkspaceMenuOpen}>
         <div className="group w-full flex items-center justify-between px-2 py-1.5 rounded text-custom-sidebar-text-400 hover:bg-custom-sidebar-background-90">
           <Disclosure.Button

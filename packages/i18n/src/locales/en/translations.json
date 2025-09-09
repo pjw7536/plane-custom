@@ -130,6 +130,8 @@
   "projects": "Projects",
   "views": "Views",
   "workspace": "Workspace",
+  "apps": "Apps",
+  "apps_new_page": "New Page",
   "archives": "Archives",
   "settings": "Settings",
   "failed_to_move_favorite": "Failed to move favorite",

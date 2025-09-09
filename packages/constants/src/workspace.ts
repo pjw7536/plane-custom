@@ -326,6 +326,22 @@ export const WORKSPACE_SIDEBAR_STATIC_PINNED_NAVIGATION_ITEMS_LINKS: IWorkspaceS
   WORKSPACE_SIDEBAR_STATIC_NAVIGATION_ITEMS["projects"]!,
 ];
 
+// Apps group navigation (standalone/global pages not tied to workspace/project paths)
+export const WORKSPACE_SIDEBAR_APPS_NAVIGATION_ITEMS: Record<string, IWorkspaceSidebarNavigationItem> = {
+  "apps-new-page": {
+    key: "apps-new-page",
+    labelTranslationKey: "apps_new_page",
+    // Workspace-prefixed apps route
+    href: `/apps/newapp/`,
+    access: [EUserWorkspaceRoles.ADMIN, EUserWorkspaceRoles.MEMBER, EUserWorkspaceRoles.GUEST],
+    highlight: (pathname: string, url: string) => pathname.includes(url),
+  },
+};
+
+export const WORKSPACE_SIDEBAR_APPS_NAVIGATION_ITEMS_LINKS: IWorkspaceSidebarNavigationItem[] = [
+  WORKSPACE_SIDEBAR_APPS_NAVIGATION_ITEMS["apps-new-page"]!,
+];
+
 export const IS_FAVORITE_MENU_OPEN = "is_favorite_menu_open";
 export const WORKSPACE_DEFAULT_SEARCH_RESULT: IWorkspaceSearchResults = {
   results: {
