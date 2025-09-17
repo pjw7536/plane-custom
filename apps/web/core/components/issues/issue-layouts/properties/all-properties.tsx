@@ -11,7 +11,7 @@ import { WORK_ITEM_TRACKER_EVENTS } from "@plane/constants";
 // i18n
 import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
-import { TIssue, IIssueDisplayProperties, TIssuePriorities } from "@plane/types";
+import { TIssue, IIssueDisplayProperties, TIssuePriorities, EIssueLayoutTypes } from "@plane/types";
 // ui
 import {
   cn,
@@ -57,7 +57,7 @@ export interface IIssueProperties {
 }
 
 export const IssueProperties: React.FC<IIssueProperties> = observer((props) => {
-  const { issue, updateIssue, displayProperties, isReadOnly, className, isEpic = false } = props;
+  const { issue, updateIssue, displayProperties, isReadOnly, className, activeLayout, isEpic = false } = props;
   // i18n
   const { t } = useTranslation();
   // store hooks
@@ -74,6 +74,8 @@ export const IssueProperties: React.FC<IIssueProperties> = observer((props) => {
   const { getStateById } = useProjectState();
   const { isMobile } = usePlatformOS();
   const projectDetails = getProjectById(issue.project_id);
+  const normalizedActiveLayout = activeLayout ? activeLayout.toLowerCase() : "";
+  const shouldHideDates = normalizedActiveLayout === EIssueLayoutTypes.KANBAN;
 
   // router
   const router = useAppRouter();
@@ -230,7 +232,11 @@ export const IssueProperties: React.FC<IIssueProperties> = observer((props) => {
 
   // date range is enabled only when both dates are available and both dates are enabled
   const isDateRangeEnabled: boolean = Boolean(
-    issue.start_date && issue.target_date && displayProperties.start_date && displayProperties.due_date
+    !shouldHideDates &&
+      issue.start_date &&
+      issue.target_date &&
+      displayProperties.start_date &&
+      displayProperties.due_date
   );
 
   const defaultLabelOptions = issue?.label_ids?.map((id) => labelMap[id]) || [];
@@ -314,7 +320,7 @@ export const IssueProperties: React.FC<IIssueProperties> = observer((props) => {
       <WithDisplayPropertiesHOC
         displayProperties={displayProperties}
         displayPropertyKey="start_date"
-        shouldRenderProperty={() => !isDateRangeEnabled}
+        shouldRenderProperty={() => !shouldHideDates && !isDateRangeEnabled}
       >
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateDropdown
@@ -336,7 +342,7 @@ export const IssueProperties: React.FC<IIssueProperties> = observer((props) => {
       <WithDisplayPropertiesHOC
         displayProperties={displayProperties}
         displayPropertyKey="due_date"
-        shouldRenderProperty={() => !isDateRangeEnabled}
+        shouldRenderProperty={() => !shouldHideDates && !isDateRangeEnabled}
       >
         <div className="h-5" onFocus={handleEventPropagation} onClick={handleEventPropagation}>
           <DateDropdown

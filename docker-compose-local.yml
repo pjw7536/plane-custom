@@ -122,23 +122,23 @@ services:
       - plane-db
       - plane-redis
 
-  live:
-    build:
-      context: ./apps/live
-      dockerfile: Dockerfile.live
-    restart: unless-stopped
-    networks:
-      - dev_env
-    environment:
-      PORT: '3000'
-      LIVE_BASE_PATH: '/live'
-      API_BASE_URL: 'http://api:8000'
-      REDIS_HOST: 'plane-redis'
-      REDIS_PORT: '6379'
-      REDIS_URL: 'redis://plane-redis:6379/'
-    depends_on:
-      - api
-      - plane-redis
+#  live:
+#    build:
+#      context: ./apps/live
+#      dockerfile: Dockerfile.live
+#    restart: unless-stopped
+#    networks:
+#      - dev_env
+#    environment:
+#      PORT: '3000'
+#      LIVE_BASE_PATH: '/live'
+#      API_BASE_URL: 'http://api:8000'
+#      REDIS_HOST: 'plane-redis'
+#      REDIS_PORT: '6379'
+#      REDIS_URL: 'redis://plane-redis:6379/'
+#    depends_on:
+#      - api
+#      - plane-redis
 
   migrator:
     build:
@@ -166,7 +166,6 @@ services:
     depends_on:
       - api
       - plane-minio
-      - live
     ports:
       - '80:80'
     volumes:
