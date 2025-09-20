@@ -1,7 +1,8 @@
 "use client";
 
-import { MutableRefObject } from "react";
+import { MutableRefObject, useMemo } from "react";
 import { observer } from "mobx-react";
+import { format } from "date-fns";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 // plane types
@@ -42,6 +43,17 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
   // hooks
   const { project_details } = usePublish(anchor.toString());
 
+  const formattedUpdatedAt = useMemo(() => {
+    if (!issue.updated_at) return null;
+
+    const parsedDate =
+      typeof issue.updated_at === "string" ? new Date(issue.updated_at) : new Date(issue.updated_at.getTime());
+
+    if (Number.isNaN(parsedDate.getTime())) return null;
+
+    return format(parsedDate, "MM/dd hh:mm a").toUpperCase();
+  }, [issue.updated_at]);
+
   return (
     <div className="space-y-2 px-3 py-2">
       <WithDisplayPropertiesHOC displayProperties={displayProperties || {}} displayPropertyKey="key">
@@ -52,10 +64,11 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
         </div>
       </WithDisplayPropertiesHOC>
 
-      <div className="w-full line-clamp-1 text-sm text-custom-text-100 mb-1.5">
+      <div className="w-full mb-1.5">
         <Tooltip tooltipContent={issue.name}>
-          <span>{issue.name}</span>
+          <span className="block line-clamp-1 text-sm text-custom-text-100">{issue.name}</span>
         </Tooltip>
+        {formattedUpdatedAt && <div className="mt-1 text-right text-xs text-custom-text-300">{formattedUpdatedAt}</div>}
       </div>
 
       <IssueProperties

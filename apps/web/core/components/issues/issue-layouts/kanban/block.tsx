@@ -1,10 +1,11 @@
 "use client";
 
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
+import { format } from "date-fns";
 // plane helpers
 import { MoreHorizontal } from "lucide-react";
 import { useOutsideClickDetector } from "@plane/hooks";
@@ -84,6 +85,15 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
   // derived values
   const subIssueCount = issue?.sub_issues_count ?? 0;
 
+  const formattedUpdatedAt = useMemo(() => {
+    if (!issue.updated_at) return null;
+
+    const parsedDate = new Date(issue.updated_at);
+    if (Number.isNaN(parsedDate.getTime())) return null;
+
+    return format(parsedDate, "MM/dd hh:mm a").toUpperCase();
+  }, [issue.updated_at]);
+
   const handleEventPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -117,11 +127,14 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
         </div>
       </div>
 
-      <Tooltip tooltipContent={issue.name} isMobile={isMobile} renderByDefault={false}>
-        <div className="w-full line-clamp-1 text-sm text-custom-text-100">
-          <span>{issue.name}</span>
-        </div>
-      </Tooltip>
+      <div className="w-full mb-1.5">
+        <Tooltip tooltipContent={issue.name} isMobile={isMobile} renderByDefault={false}>
+          <div className="line-clamp-1 text-sm text-custom-text-100">
+            <span>{issue.name}</span>
+          </div>
+        </Tooltip>
+        {formattedUpdatedAt && <div className="w-full text-right mt-1 text-xs text-custom-text-300">{formattedUpdatedAt}</div>}
+      </div>
 
       <IssueProperties
         className="flex flex-wrap items-center gap-2 whitespace-nowrap text-custom-text-300 pt-1.5"
