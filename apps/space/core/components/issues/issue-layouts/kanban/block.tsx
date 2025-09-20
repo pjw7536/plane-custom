@@ -9,6 +9,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Tooltip } from "@plane/propel/tooltip";
 import { IIssueDisplayProperties } from "@plane/types";
 // plane ui
+import { Avatar } from "@plane/ui";
 // plane utils
 import { cn } from "@plane/utils";
 // components
@@ -18,6 +19,7 @@ import { queryParamGenerator } from "@/helpers/query-param-generator";
 // hooks
 import { usePublish } from "@/hooks/store/publish";
 import { useIssueDetails } from "@/hooks/store/use-issue-details";
+import { useMember } from "@/hooks/store/use-member";
 //
 import { IIssue } from "@/types/issue";
 import { IssueProperties } from "../properties/all-properties";
@@ -42,6 +44,7 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
   const { anchor } = useParams();
   // hooks
   const { project_details } = usePublish(anchor.toString());
+  const { getMemberById } = useMember();
 
   const formattedUpdatedAt = useMemo(() => {
     if (!issue.updated_at) return null;
@@ -53,6 +56,10 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
 
     return format(parsedDate, "MM/dd hh:mm a").toUpperCase();
   }, [issue.updated_at]);
+
+  const updatedByMember = issue.updated_by ? getMemberById(issue.updated_by) : undefined;
+  const createdByMember = issue.created_by ? getMemberById(issue.created_by) : undefined;
+  const lastChangeMember = updatedByMember ?? createdByMember;
 
   return (
     <div className="space-y-2 px-3 py-2">
@@ -68,7 +75,16 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
         <Tooltip tooltipContent={issue.name}>
           <span className="block line-clamp-1 text-sm text-custom-text-100">{issue.name}</span>
         </Tooltip>
-        {formattedUpdatedAt && <div className="mt-1 text-right text-xs text-custom-text-300">{formattedUpdatedAt}</div>}
+        {formattedUpdatedAt && (
+          <div className="mt-1 flex w-full items-center justify-end gap-2 text-xs text-custom-text-300">
+            {lastChangeMember && (
+              <div className="flex-shrink-0">
+                <Avatar size="md" name={lastChangeMember.member__display_name} src={lastChangeMember.member__avatar} />
+              </div>
+            )}
+            <span>{formattedUpdatedAt}</span>
+          </div>
+        )}
       </div>
 
       <IssueProperties

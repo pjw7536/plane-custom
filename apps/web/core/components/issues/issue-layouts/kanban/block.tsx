@@ -13,8 +13,8 @@ import { useOutsideClickDetector } from "@plane/hooks";
 import { Tooltip } from "@plane/propel/tooltip";
 import { EIssueServiceType, TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
 // ui
-import { ControlLink, DropIndicator, TOAST_TYPE, setToast } from "@plane/ui";
-import { cn, generateWorkItemLink } from "@plane/utils";
+import { Avatar, ControlLink, DropIndicator, TOAST_TYPE, setToast } from "@plane/ui";
+import { cn, generateWorkItemLink, getFileURL } from "@plane/utils";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { HIGHLIGHT_CLASS } from "@/components/issues/issue-layouts/utils";
@@ -23,6 +23,7 @@ import { HIGHLIGHT_CLASS } from "@/components/issues/issue-layouts/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useKanbanView } from "@/hooks/store/use-kanban-view";
 import { useProject } from "@/hooks/store/use-project";
+import { useMember } from "@/hooks/store/use-member";
 import useIssuePeekOverviewRedirection from "@/hooks/use-issue-peek-overview-redirection";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web components
@@ -69,6 +70,7 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
   const [isMenuActive, setIsMenuActive] = useState(false);
   // hooks
   const { isMobile } = usePlatformOS();
+  const { getUserDetails } = useMember();
 
   const customActionButton = (
     <div
@@ -93,6 +95,11 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
 
     return format(parsedDate, "MM/dd hh:mm a").toUpperCase();
   }, [issue.updated_at]);
+
+  const updatedByDetails = issue?.updated_by ? getUserDetails(issue.updated_by) : undefined;
+  const createdByDetails = issue?.created_by ? getUserDetails(issue.created_by) : undefined;
+  const lastChangeUserDetails = updatedByDetails ?? createdByDetails;
+  const lastChangeAvatarUrl = lastChangeUserDetails?.avatar_url ? getFileURL(lastChangeUserDetails.avatar_url) : undefined;
 
   const handleEventPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -133,7 +140,16 @@ const KanbanIssueDetailsBlock: React.FC<IssueDetailsBlockProps> = observer((prop
             <span>{issue.name}</span>
           </div>
         </Tooltip>
-        {formattedUpdatedAt && <div className="w-full text-right mt-1 text-xs text-custom-text-300">{formattedUpdatedAt}</div>}
+        {formattedUpdatedAt && (
+          <div className="mt-1 flex w-full items-center justify-end gap-2 text-xs text-custom-text-300">
+            {lastChangeUserDetails && (
+              <div className="flex-shrink-0">
+                <Avatar size="md" name={lastChangeUserDetails.display_name} src={lastChangeAvatarUrl} />
+              </div>
+            )}
+            <span>{formattedUpdatedAt}</span>
+          </div>
+        )}
       </div>
 
       <IssueProperties

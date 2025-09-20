@@ -22,6 +22,7 @@ export class Server {
     this.router = express.Router();
     expressWs(this.app);
     this.app.set("port", process.env.PORT || 3000);
+    this.app.set("host", process.env.HOSTNAME || "0.0.0.0");
     this.setupMiddleware();
     this.setupHocusPocus();
     this.setupRoutes();
@@ -96,8 +97,10 @@ export class Server {
   }
 
   public listen() {
-    this.serverInstance = this.app.listen(this.app.get("port"), () => {
-      manualLogger.info(`Plane Live server has started at port ${this.app.get("port")}`);
+    const port = this.app.get("port");
+    const host = this.app.get("host");
+    this.serverInstance = this.app.listen(port, host, () => {
+      manualLogger.info(`Plane Live server has started at ${host}:${port}`);
     });
   }
 

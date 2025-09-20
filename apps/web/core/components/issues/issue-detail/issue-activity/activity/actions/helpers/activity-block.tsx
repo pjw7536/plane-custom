@@ -4,7 +4,8 @@ import { FC, ReactNode } from "react";
 import { Network } from "lucide-react";
 // plane imports
 import { Tooltip } from "@plane/propel/tooltip";
-import { renderFormattedTime, renderFormattedDate, calculateTimeAgo } from "@plane/utils";
+import { Avatar } from "@plane/ui";
+import { calculateTimeAgo, getFileURL, renderFormattedDate, renderFormattedTime } from "@plane/utils";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { usePlatformOS } from "@/hooks/use-platform-os";
 // plane web imports
@@ -30,6 +31,11 @@ export const IssueActivityBlockComponent: FC<TIssueActivityBlockComponent> = (pr
   const activity = getActivityById(activityId);
   const { isMobile } = usePlatformOS();
   if (!activity) return <></>;
+
+  const actorDisplayName = customUserName ?? activity.actor_detail?.display_name ?? "Plane";
+  const actorAvatarSrc = activity.actor_detail?.avatar_url ? getFileURL(activity.actor_detail.avatar_url) : undefined;
+  const isCreatorActivity = !activity?.field && activity?.verb === "created";
+
   return (
     <div
       className={`relative flex items-center gap-3 text-xs ${
@@ -41,20 +47,31 @@ export const IssueActivityBlockComponent: FC<TIssueActivityBlockComponent> = (pr
         {icon ? icon : <Network className="w-3.5 h-3.5" />}
       </div>
       <div className="w-full truncate text-custom-text-200">
-        {!activity?.field && activity?.verb === "created" ? (
-          <IssueCreatorDisplay activityId={activityId} customUserName={customUserName} />
-        ) : (
-          <IssueUser activityId={activityId} customUserName={customUserName} />
-        )}
-        <span> {children} </span>
-        <span>
-          <Tooltip
-            isMobile={isMobile}
-            tooltipContent={`${renderFormattedDate(activity.created_at)}, ${renderFormattedTime(activity.created_at)}`}
-          >
-            <span className="whitespace-nowrap text-custom-text-350"> {calculateTimeAgo(activity.created_at)}</span>
-          </Tooltip>
-        </span>
+        <div className="flex items-start gap-2">
+          <Avatar
+            size="sm"
+            name={actorDisplayName}
+            src={actorAvatarSrc}
+            showTooltip={false}
+            className="flex-shrink-0"
+          />
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+            {isCreatorActivity ? (
+              <IssueCreatorDisplay activityId={activityId} customUserName={customUserName} />
+            ) : (
+              <IssueUser activityId={activityId} customUserName={customUserName} />
+            )}
+            <span>{children}</span>
+            <span>
+              <Tooltip
+                isMobile={isMobile}
+                tooltipContent={`${renderFormattedDate(activity.created_at)}, ${renderFormattedTime(activity.created_at)}`}
+              >
+                <span className="ml-1 whitespace-nowrap text-custom-text-350">{calculateTimeAgo(activity.created_at)}</span>
+              </Tooltip>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
