@@ -847,20 +847,39 @@ class BulkDeleteIssuesEndpoint(BaseAPIView):
                 {"error": "Issue IDs are required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        issues = Issue.issue_objects.filter(
+        issues_queryset = Issue.issue_objects.filter(
             workspace__slug=slug, project_id=project_id, pk__in=issue_ids
         )
 
-        total_issues = len(issues)
+        issues_to_delete = list(issues_queryset.values_list("id", flat=True))
+        total_issues = len(issues_to_delete)
+
+        if not total_issues:
+            return Response(
+                {"message": "0 issues were deleted"},
+                status=status.HTTP_200_OK,
+            )
 
         # First, delete all related cycle issues
-        CycleIssue.objects.filter(issue_id__in=issue_ids).delete()
+        CycleIssue.objects.filter(issue_id__in=issues_to_delete).delete()
 
         # Then, delete all related module issues
-        ModuleIssue.objects.filter(issue_id__in=issue_ids).delete()
+        ModuleIssue.objects.filter(issue_id__in=issues_to_delete).delete()
 
         # Finally, delete the issues themselves
-        issues.delete()
+        issues_queryset.delete()
+
+        # Broadcast deletions for real-time listeners
+        project_identifier = str(project_id)
+        for issue_id in issues_to_delete:
+            try:
+                broadcast_issue_event(
+                    project_id,
+                    "issue.deleted",
+                    {"id": str(issue_id), "project_id": project_identifier},
+                )
+            except Exception:
+                pass
 
         return Response(
             {"message": f"{total_issues} issues were deleted"},
