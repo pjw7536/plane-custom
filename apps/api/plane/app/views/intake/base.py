@@ -211,6 +211,21 @@ class IntakeIssueViewSet(BaseViewSet):
                     ),
                     Value([], output_field=ArrayField(UUIDField())),
                 )
+            ).annotate(
+                module_ids=Coalesce(
+                    ArrayAgg(
+                        "issue__issue_module__module_id",
+                        distinct=True,
+                        filter=Q(
+                            ~Q(issue__issue_module__module_id__isnull=True)
+                            & Q(
+                                issue__issue_module__module__archived_at__isnull=True
+                            )
+                            & Q(issue__issue_module__deleted_at__isnull=True)
+                        ),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
+                )
             )
         ).order_by(request.GET.get("order_by", "-issue__created_at"))
         # Intake status filter
@@ -333,6 +348,20 @@ class IntakeIssueViewSet(BaseViewSet):
                         ),
                         Value([], output_field=ArrayField(UUIDField())),
                     ),
+                    module_ids=Coalesce(
+                        ArrayAgg(
+                            "issue__issue_module__module_id",
+                            distinct=True,
+                            filter=Q(
+                                ~Q(issue__issue_module__module_id__isnull=True)
+                                & Q(
+                                    issue__issue_module__module__archived_at__isnull=True
+                                )
+                                & Q(issue__issue_module__deleted_at__isnull=True)
+                            ),
+                        ),
+                        Value([], output_field=ArrayField(UUIDField())),
+                    ),
                 )
                 .get(
                     intake_id=intake_id.id,
@@ -375,6 +404,7 @@ class IntakeIssueViewSet(BaseViewSet):
         # Get issue data
         issue_data = request.data.pop("issue", False)
         issues_to_broadcast = set()
+        send_created_event = False
 
         if bool(issue_data):
             issue = Issue.objects.annotate(
@@ -479,9 +509,11 @@ class IntakeIssueViewSet(BaseViewSet):
                         workspace__slug=slug,
                         project_id=project_id,
                     )
+                    issues_to_broadcast.add(str(issue.id))
+                    send_created_event = True
 
                     # Update the issue state only if it is in triage state
-                    if issue.state.is_triage:
+                    if getattr(issue.state, "is_triage", False):
                         # Move to default state
                         state = State.objects.filter(
                             workspace__slug=slug, project_id=project_id, default=True
@@ -489,7 +521,6 @@ class IntakeIssueViewSet(BaseViewSet):
                         if state is not None:
                             issue.state = state
                             issue.save()
-                            issues_to_broadcast.add(str(issue.id))
                 # create a activity for status change
                 issue_activity.delay(
                     type="intake.activity.created",
@@ -507,32 +538,46 @@ class IntakeIssueViewSet(BaseViewSet):
                 intake_issue = (
                     IntakeIssue.objects.select_related("issue")
                     .prefetch_related("issue__labels", "issue__assignees")
-                    .annotate(
-                        label_ids=Coalesce(
-                            ArrayAgg(
-                                "issue__labels__id",
-                                distinct=True,
+                .annotate(
+                    label_ids=Coalesce(
+                        ArrayAgg(
+                            "issue__labels__id",
+                            distinct=True,
                                 filter=Q(
                                     ~Q(issue__labels__id__isnull=True)
                                     & Q(issue__label_issue__deleted_at__isnull=True)
                                 ),
                             ),
                             Value([], output_field=ArrayField(UUIDField())),
-                        ),
-                        assignee_ids=Coalesce(
-                            ArrayAgg(
-                                "issue__assignees__id",
-                                distinct=True,
+                    ),
+                    assignee_ids=Coalesce(
+                        ArrayAgg(
+                            "issue__assignees__id",
+                            distinct=True,
                                 filter=Q(
                                     ~Q(issue__assignees__id__isnull=True)
                                     & Q(issue__issue_assignee__deleted_at__isnull=True)
                                 ),
-                            ),
-                            Value([], output_field=ArrayField(UUIDField())),
                         ),
-                    )
-                    .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
+                        Value([], output_field=ArrayField(UUIDField())),
+                    ),
+                    module_ids=Coalesce(
+                        ArrayAgg(
+                            "issue__issue_module__module_id",
+                            distinct=True,
+                            filter=Q(
+                                ~Q(issue__issue_module__module_id__isnull=True)
+                                & Q(
+                                    issue__issue_module__module__archived_at__isnull=True
+                                )
+                                & Q(issue__issue_module__deleted_at__isnull=True)
+                            ),
+                        ),
+                        Value([], output_field=ArrayField(UUIDField())),
+                    ),
                 )
+                .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
+            )
                 serializer = IntakeIssueDetailSerializer(intake_issue).data
                 if issues_to_broadcast:
                     broadcast_issue_updates(
@@ -540,6 +585,7 @@ class IntakeIssueViewSet(BaseViewSet):
                         project_id=project_id,
                         issue_ids=issues_to_broadcast,
                         user_timezone=getattr(request.user, "user_timezone", None),
+                        payload_type="issue.created" if send_created_event else "issue.updated",
                     )
                 return Response(serializer, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -551,6 +597,7 @@ class IntakeIssueViewSet(BaseViewSet):
                     project_id=project_id,
                     issue_ids=issues_to_broadcast,
                     user_timezone=getattr(request.user, "user_timezone", None),
+                    payload_type="issue.created" if send_created_event else "issue.updated",
                 )
             return Response(serializer, status=status.HTTP_200_OK)
 

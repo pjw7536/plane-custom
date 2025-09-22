@@ -40,6 +40,8 @@ class IntakeIssueSerializer(BaseSerializer):
         # Pass the annotated fields to the Issue instance if they exist
         if hasattr(instance, "label_ids"):
             instance.issue.label_ids = instance.label_ids
+        if hasattr(instance, "module_ids"):
+            instance.issue.module_ids = instance.module_ids
         return super().to_representation(instance)
 
 
@@ -68,6 +70,8 @@ class IntakeIssueDetailSerializer(BaseSerializer):
             instance.issue.assignee_ids = instance.assignee_ids
         if hasattr(instance, "label_ids"):
             instance.issue.label_ids = instance.label_ids
+        if hasattr(instance, "module_ids"):
+            instance.issue.module_ids = instance.module_ids
 
         return super().to_representation(instance)
 

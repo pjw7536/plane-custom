@@ -13,6 +13,10 @@ class IssueForIntakeSerializer(BaseSerializer):
     content validation and priority assignment for triage workflows.
     """
 
+    module_ids = serializers.ListField(
+        child=serializers.UUIDField(), required=False, write_only=True
+    )
+
     class Meta:
         model = Issue
         fields = [
@@ -20,6 +24,7 @@ class IssueForIntakeSerializer(BaseSerializer):
             "description",
             "description_html",
             "priority",
+            "module_ids",
         ]
         read_only_fields = [
             "id",
@@ -89,6 +94,11 @@ class IntakeIssueSerializer(BaseSerializer):
             "updated_at",
         ]
 
+    def to_representation(self, instance):
+        if hasattr(instance, "module_ids"):
+            instance.issue.module_ids = [str(module_id) for module_id in instance.module_ids]
+        return super().to_representation(instance)
+
 
 class IntakeIssueUpdateSerializer(BaseSerializer):
     """
@@ -137,4 +147,7 @@ class IssueDataSerializer(serializers.Serializer):
     )
     priority = serializers.ChoiceField(
         choices=Issue.PRIORITY_CHOICES, default="none", help_text="Issue priority"
+    )
+    module_ids = serializers.ListField(
+        child=serializers.UUIDField(), required=False, help_text="Module identifiers"
     )

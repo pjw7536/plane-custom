@@ -2,7 +2,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { CalendarCheck2, CopyPlus, Signal, Tag, Users } from "lucide-react";
+import { CalendarCheck2, CopyPlus, Signal, Tag, Users, Boxes } from "lucide-react";
 import { DoubleCircleIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { TInboxDuplicateIssueDetails, TIssue } from "@plane/types";
@@ -11,6 +11,7 @@ import { getDate, renderFormattedPayloadDate, generateWorkItemLink } from "@plan
 // components
 import { DateDropdown } from "@/components/dropdowns/date";
 import { MemberDropdown } from "@/components/dropdowns/member/dropdown";
+import { ModuleDropdown } from "@/components/dropdowns/module/dropdown";
 import { PriorityDropdown } from "@/components/dropdowns/priority";
 import { StateDropdown } from "@/components/dropdowns/state/dropdown";
 import type { TIssueOperations } from "@/components/issues/issue-detail";
@@ -122,6 +123,35 @@ export const InboxIssueContentProperties: React.FC<Props> = observer((props) => 
                 buttonClassName="w-min h-auto whitespace-nowrap"
               />
             </div>
+
+            {/* Modules */}
+            {currentProjectDetails?.module_view && (
+              <div className="flex h-8 items-center gap-2">
+                <div className="flex w-2/5 flex-shrink-0 items-center gap-1 text-sm text-custom-text-300">
+                  <Boxes className="h-4 w-4 flex-shrink-0" />
+                  <span>Modules</span>
+                </div>
+                <ModuleDropdown
+                  projectId={projectId}
+                  value={issue?.module_ids ?? []}
+                  onChange={(moduleIds) =>
+                    issue?.id &&
+                    issueOperations.update(workspaceSlug, projectId, issue?.id, { module_ids: moduleIds })
+                  }
+                  disabled={!isEditable}
+                  buttonVariant={(issue?.module_ids?.length ?? 0) > 0 ? "transparent-with-text" : "border-with-text"}
+                  className="w-3/5 flex-grow group"
+                  buttonContainerClassName="w-full text-left"
+                  buttonClassName={`text-sm justify-between ${
+                    (issue?.module_ids?.length ?? 0) > 0 ? "" : "text-custom-text-400"
+                  }`}
+                  multiple
+                  showCount
+                  dropdownArrow
+                  dropdownArrowClassName="h-3.5 w-3.5 hidden group-hover:inline"
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className={`divide-y-2 divide-custom-border-200 mt-3 ${!isEditable ? "opacity-60" : ""}`}>

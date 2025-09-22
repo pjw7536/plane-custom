@@ -138,20 +138,18 @@ export const InboxIssueProperties: FC<TInboxIssueProperties> = observer((props) 
       )}
 
       {/* module */}
-      {isVisible && (
-        <div className="h-7">
-          <ModuleDropdown
-            value={data?.module_ids || []}
-            onChange={(moduleIds) => handleData("module_ids", moduleIds)}
-            projectId={projectId}
-            placeholder="Modules"
-            buttonVariant="border-with-text"
-            multiple
-            showCount
-            tabIndex={getIndex("module_ids")}
-          />
-        </div>
-      )}
+      <div className="h-7">
+        <ModuleDropdown
+          value={data?.module_ids || []}
+          onChange={(moduleIds) => handleData("module_ids", moduleIds)}
+          projectId={projectId}
+          placeholder="Modules"
+          buttonVariant="border-with-text"
+          multiple
+          showCount
+          tabIndex={getIndex("module_ids")}
+        />
+      </div>
 
       {/* estimate */}
       {isVisible && projectId && areEstimateEnabledByProjectId(projectId) && (

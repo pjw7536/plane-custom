@@ -1,5 +1,6 @@
 # Python imports
 import json
+import uuid
 
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
@@ -23,7 +24,16 @@ from plane.api.serializers import (
 )
 from plane.app.permissions import ProjectLitePermission
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State
+from plane.db.models import (
+    Intake,
+    IntakeIssue,
+    Issue,
+    Project,
+    ProjectMember,
+    State,
+    Module,
+    ModuleIssue,
+)
 from plane.utils.host import base_host
 from .base import BaseAPIView
 from plane.db.models.intake import SourceType
@@ -77,6 +87,23 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
                 intake_id=intake.id,
             )
             .select_related("issue", "workspace", "project")
+            .prefetch_related("issue__issue_module__module")
+            .annotate(
+                module_ids=Coalesce(
+                    ArrayAgg(
+                        "issue__issue_module__module_id",
+                        distinct=True,
+                        filter=Q(
+                            ~Q(issue__issue_module__module_id__isnull=True)
+                            & Q(
+                                issue__issue_module__module__archived_at__isnull=True
+                            )
+                            & Q(issue__issue_module__deleted_at__isnull=True)
+                        ),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
+                )
+            )
             .order_by(self.kwargs.get("order_by", "-created_at"))
         )
 
@@ -175,6 +202,36 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
                 {"error": "Invalid priority"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        raw_module_ids = request.data.get("issue", {}).get("module_ids", [])
+        if raw_module_ids is None:
+            raw_module_ids = []
+        if not isinstance(raw_module_ids, (list, tuple)):
+            raw_module_ids = [raw_module_ids]
+        try:
+            module_uuid_ids = [uuid.UUID(str(module_id)) for module_id in raw_module_ids]
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Invalid module identifiers"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if module_uuid_ids:
+            valid_module_ids = list(
+                Module.objects.filter(
+                    project_id=project_id,
+                    workspace__slug=slug,
+                    archived_at__isnull=True,
+                    id__in=module_uuid_ids,
+                ).values_list("id", flat=True)
+            )
+            if len(set(valid_module_ids)) != len(set(module_uuid_ids)):
+                return Response(
+                    {"error": "Invalid modules provided"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            valid_module_ids = []
+
         # create an issue
         issue = Issue.objects.create(
             name=request.data.get("issue", {}).get("name"),
@@ -185,6 +242,23 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
             priority=request.data.get("issue", {}).get("priority", "none"),
             project_id=project_id,
         )
+
+        if valid_module_ids:
+            ModuleIssue.objects.bulk_create(
+                [
+                    ModuleIssue(
+                        issue=issue,
+                        module_id=module_id,
+                        project_id=project_id,
+                        workspace_id=issue.workspace_id,
+                        created_by=request.user,
+                        updated_by=request.user,
+                    )
+                    for module_id in valid_module_ids
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
         # create an intake issue
         intake_issue = IntakeIssue.objects.create(
@@ -205,6 +279,7 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
             intake=str(intake_issue.id),
         )
 
+        intake_issue = self.get_queryset().get(issue_id=issue.id)
         serializer = IntakeIssueSerializer(intake_issue)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -379,6 +454,35 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
                     "description": issue_data.get("description", issue.description),
                 }
 
+            module_uuid_ids = None
+            if isinstance(issue_data, dict) and "module_ids" in issue_data:
+                raw_module_ids = issue_data.pop("module_ids")
+                if raw_module_ids is None:
+                    raw_module_ids = []
+                if not isinstance(raw_module_ids, (list, tuple)):
+                    raw_module_ids = [raw_module_ids]
+                try:
+                    module_uuid_ids = [uuid.UUID(str(module_id)) for module_id in raw_module_ids]
+                except (ValueError, TypeError):
+                    return Response(
+                        {"error": "Invalid module identifiers"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if module_uuid_ids:
+                    valid_module_ids = list(
+                        Module.objects.filter(
+                            project_id=project_id,
+                            workspace__slug=slug,
+                            archived_at__isnull=True,
+                            id__in=module_uuid_ids,
+                        ).values_list("id", flat=True)
+                    )
+                    if len(set(valid_module_ids)) != len(set(module_uuid_ids)):
+                        return Response(
+                            {"error": "Invalid modules provided"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
             issue_serializer = IssueSerializer(issue, data=issue_data, partial=True)
 
             if issue_serializer.is_valid():
@@ -400,6 +504,24 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
                         intake=(intake_issue.id),
                     )
                 issue_serializer.save()
+                if module_uuid_ids is not None:
+                    ModuleIssue.objects.filter(issue=issue).delete()
+                    if module_uuid_ids:
+                        ModuleIssue.objects.bulk_create(
+                            [
+                                ModuleIssue(
+                                    issue=issue,
+                                    module_id=module_id,
+                                    project_id=project_id,
+                                    workspace_id=issue.workspace_id,
+                                    created_by=request.user,
+                                    updated_by=request.user,
+                                )
+                                for module_id in module_uuid_ids
+                            ],
+                            batch_size=10,
+                            ignore_conflicts=True,
+                        )
             else:
                 return Response(
                     issue_serializer.errors, status=status.HTTP_400_BAD_REQUEST
@@ -457,12 +579,15 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
                     origin=base_host(request=request, is_app=True),
                     intake=str(intake_issue.id),
                 )
-                serializer = IntakeIssueSerializer(intake_issue)
+                updated_intake_issue = self.get_queryset().get(issue_id=issue_id)
+                serializer = IntakeIssueSerializer(updated_intake_issue)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
+            refreshed_issue = self.get_queryset().get(issue_id=issue_id)
             return Response(
-                IntakeIssueSerializer(intake_issue).data, status=status.HTTP_200_OK
+                IntakeIssueSerializer(refreshed_issue).data,
+                status=status.HTTP_200_OK,
             )
 
     @intake_docs(

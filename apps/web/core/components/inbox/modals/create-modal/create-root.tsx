@@ -47,6 +47,7 @@ export const defaultIssueData: Partial<TIssue> = {
   state_id: "",
   label_ids: [],
   assignee_ids: [],
+  module_ids: [],
   start_date: renderFormattedPayloadDate(new Date()),
   target_date: "",
 };
@@ -150,6 +151,7 @@ export const InboxIssueCreateRoot: FC<TInboxIssueCreateRoot> = observer((props) 
       state_id: formData.state_id || "",
       label_ids: formData.label_ids || [],
       assignee_ids: formData.assignee_ids || [],
+      module_ids: formData.module_ids || [],
       target_date: formData.target_date || null,
     };
     setFormSubmitting(true);

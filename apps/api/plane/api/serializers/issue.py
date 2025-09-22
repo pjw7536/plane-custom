@@ -670,6 +670,7 @@ class IssueExpandSerializer(BaseSerializer):
 
     labels = serializers.SerializerMethodField()
     assignees = serializers.SerializerMethodField()
+    module_ids = serializers.SerializerMethodField()
     state = StateLiteSerializer(read_only=True)
 
     def get_labels(self, obj):
@@ -688,6 +689,9 @@ class IssueExpandSerializer(BaseSerializer):
                 [ia.assignee for ia in obj.issue_assignee.all()], many=True
             ).data
         return [ia.assignee_id for ia in obj.issue_assignee.all()]
+
+    def get_module_ids(self, obj):
+        return [str(module.module_id) for module in obj.issue_module.all()]
 
     class Meta:
         model = Issue
