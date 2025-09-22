@@ -45,6 +45,7 @@ from plane.utils.timezone_converter import user_timezone_converter
 from plane.utils.global_paginator import paginate
 from plane.utils.host import base_host
 from plane.db.models.intake import SourceType
+from plane.utils.issue_ws import broadcast_issue_event, broadcast_issue_updates
 
 
 class IntakeViewSet(BaseViewSet):
@@ -301,6 +302,13 @@ class IntakeIssueViewSet(BaseViewSet):
                 user_id=request.user.id,
                 is_creating=True,
             )
+            broadcast_issue_updates(
+                slug=slug,
+                project_id=project_id,
+                issue_ids=[serializer.data["id"]],
+                user_timezone=getattr(request.user, "user_timezone", None),
+                payload_type="issue.created",
+            )
             intake_issue = (
                 IntakeIssue.objects.select_related("issue")
                 .prefetch_related("issue__labels", "issue__assignees")
@@ -366,6 +374,8 @@ class IntakeIssueViewSet(BaseViewSet):
 
         # Get issue data
         issue_data = request.data.pop("issue", False)
+        issues_to_broadcast = set()
+
         if bool(issue_data):
             issue = Issue.objects.annotate(
                 label_ids=Coalesce(
@@ -431,6 +441,7 @@ class IntakeIssueViewSet(BaseViewSet):
                         user_id=request.user.id,
                     )
                 issue_serializer.save()
+                issues_to_broadcast.add(str(issue.id))
             else:
                 return Response(
                     issue_serializer.errors, status=status.HTTP_400_BAD_REQUEST
@@ -459,6 +470,7 @@ class IntakeIssueViewSet(BaseViewSet):
                     if state is not None:
                         issue.state = state
                         issue.save()
+                        issues_to_broadcast.add(str(issue.id))
 
                 # Update the issue state if it is accepted
                 if serializer.data["status"] in [1]:
@@ -477,6 +489,7 @@ class IntakeIssueViewSet(BaseViewSet):
                         if state is not None:
                             issue.state = state
                             issue.save()
+                            issues_to_broadcast.add(str(issue.id))
                 # create a activity for status change
                 issue_activity.delay(
                     type="intake.activity.created",
@@ -521,10 +534,24 @@ class IntakeIssueViewSet(BaseViewSet):
                     .get(intake_id=intake_id.id, issue_id=pk, project_id=project_id)
                 )
                 serializer = IntakeIssueDetailSerializer(intake_issue).data
+                if issues_to_broadcast:
+                    broadcast_issue_updates(
+                        slug=slug,
+                        project_id=project_id,
+                        issue_ids=issues_to_broadcast,
+                        user_timezone=getattr(request.user, "user_timezone", None),
+                    )
                 return Response(serializer, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             serializer = IntakeIssueDetailSerializer(intake_issue).data
+            if issues_to_broadcast:
+                broadcast_issue_updates(
+                    slug=slug,
+                    project_id=project_id,
+                    issue_ids=issues_to_broadcast,
+                    user_timezone=getattr(request.user, "user_timezone", None),
+                )
             return Response(serializer, status=status.HTTP_200_OK)
 
     @allow_permission(
@@ -594,15 +621,25 @@ class IntakeIssueViewSet(BaseViewSet):
             intake_id=intake_id,
         )
 
+        deleted_issue_id = None
+
         # Check the issue status
         if intake_issue.status in [-2, -1, 0, 2]:
             # Delete the issue also
             issue = Issue.objects.filter(
                 workspace__slug=slug, project_id=project_id, pk=pk
             ).first()
-            issue.delete()
+            if issue:
+                deleted_issue_id = str(issue.id)
+                issue.delete()
 
         intake_issue.delete()
+        if deleted_issue_id:
+            broadcast_issue_event(
+                project_id=project_id,
+                payload_type="issue.deleted",
+                payload={"id": deleted_issue_id, "project_id": str(project_id)},
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

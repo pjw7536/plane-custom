@@ -62,6 +62,7 @@ from plane.bgtasks.webhook_task import model_activity
 from .. import BaseAPIView, BaseViewSet
 from plane.bgtasks.recent_visited_task import recent_visited_task
 from plane.utils.host import base_host
+from plane.utils.issue_ws import broadcast_issue_updates
 
 
 class ModuleViewSet(BaseViewSet):
@@ -811,6 +812,13 @@ class ModuleViewSet(BaseViewSet):
         module.delete()
         # Delete the module issues
         ModuleIssue.objects.filter(module=pk, project_id=project_id).delete()
+        if module_issues:
+            broadcast_issue_updates(
+                slug=slug,
+                project_id=project_id,
+                issue_ids=module_issues,
+                user_timezone=getattr(request.user, "user_timezone", None),
+            )
         # Delete the user favorite module
         UserFavorite.objects.filter(
             user=request.user,

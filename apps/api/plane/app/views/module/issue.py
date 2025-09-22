@@ -35,6 +35,7 @@ from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPagina
 # Module imports
 from .. import BaseViewSet
 from plane.utils.host import base_host
+from plane.utils.issue_ws import broadcast_issue_updates
 
 
 class ModuleIssueViewSet(BaseViewSet):
@@ -226,6 +227,12 @@ class ModuleIssueViewSet(BaseViewSet):
             )
             for issue in issues
         ]
+        broadcast_issue_updates(
+            slug=slug,
+            project_id=project_id,
+            issue_ids=issues,
+            user_timezone=getattr(request.user, "user_timezone", None),
+        )
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
@@ -234,6 +241,8 @@ class ModuleIssueViewSet(BaseViewSet):
         modules = request.data.get("modules", [])
         removed_modules = request.data.get("removed_modules", [])
         project = Project.objects.get(pk=project_id)
+
+        issue_ids_to_notify = set()
 
         if modules:
             _ = ModuleIssue.objects.bulk_create(
@@ -267,6 +276,8 @@ class ModuleIssueViewSet(BaseViewSet):
                 for module in modules
             ]
 
+            issue_ids_to_notify.add(issue_id)
+
         for module_id in removed_modules:
             module_issue = ModuleIssue.objects.filter(
                 workspace__slug=slug,
@@ -274,6 +285,7 @@ class ModuleIssueViewSet(BaseViewSet):
                 module_id=module_id,
                 issue_id=issue_id,
             )
+            module_issue_instance = module_issue.first()
             issue_activity.delay(
                 type="module.activity.deleted",
                 requested_data=json.dumps({"module_id": str(module_id)}),
@@ -282,8 +294,8 @@ class ModuleIssueViewSet(BaseViewSet):
                 project_id=str(project_id),
                 current_instance=json.dumps(
                     {
-                        "module_name": module_issue.first().module.name
-                        if (module_issue.first() and module_issue.first().module)
+                        "module_name": module_issue_instance.module.name
+                        if (module_issue_instance and module_issue_instance.module)
                         else None
                     }
                 ),
@@ -292,6 +304,15 @@ class ModuleIssueViewSet(BaseViewSet):
                 origin=base_host(request=request, is_app=True),
             )
             module_issue.delete()
+            issue_ids_to_notify.add(issue_id)
+
+        if issue_ids_to_notify:
+            broadcast_issue_updates(
+                slug=slug,
+                project_id=project_id,
+                issue_ids=issue_ids_to_notify,
+                user_timezone=getattr(request.user, "user_timezone", None),
+            )
 
         return Response({"message": "success"}, status=status.HTTP_201_CREATED)
 
@@ -303,6 +324,7 @@ class ModuleIssueViewSet(BaseViewSet):
             module_id=module_id,
             issue_id=issue_id,
         )
+        module_issue_instance = module_issue.first()
         issue_activity.delay(
             type="module.activity.deleted",
             requested_data=json.dumps({"module_id": str(module_id)}),
@@ -310,11 +332,21 @@ class ModuleIssueViewSet(BaseViewSet):
             issue_id=str(issue_id),
             project_id=str(project_id),
             current_instance=json.dumps(
-                {"module_name": module_issue.first().module.name}
+                {
+                    "module_name": module_issue_instance.module.name
+                    if module_issue_instance and module_issue_instance.module
+                    else None
+                }
             ),
             epoch=int(timezone.now().timestamp()),
             notification=True,
             origin=base_host(request=request, is_app=True),
         )
         module_issue.delete()
+        broadcast_issue_updates(
+            slug=slug,
+            project_id=project_id,
+            issue_ids=[issue_id],
+            user_timezone=getattr(request.user, "user_timezone", None),
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)

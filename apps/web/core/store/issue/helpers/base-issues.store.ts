@@ -84,6 +84,16 @@ export interface IBaseIssuesStore {
     isSubGroupCumulative: boolean
   ) => number | undefined;
 
+  addIssue: (issue: TIssue, shouldUpdateList?: boolean) => void;
+  addIssueToList: (issueId: string) => void;
+  removeIssueFromList: (issueId: string) => void;
+
+  updateIssueList: (
+    issue?: TIssue,
+    issueBeforeUpdate?: TIssue,
+    action?: EIssueGroupedAction.ADD | EIssueGroupedAction.DELETE
+  ) => void;
+
   addIssueToCycle: (
     workspaceSlug: string,
     projectId: string,

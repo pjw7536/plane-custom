@@ -24,8 +24,6 @@ from django.views.decorators.gzip import gzip_page
 
 # Third Party imports
 from rest_framework import status
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from rest_framework.response import Response
 
 # Module imports
@@ -70,6 +68,7 @@ from plane.utils.global_paginator import paginate
 from plane.bgtasks.webhook_task import model_activity
 from plane.bgtasks.issue_description_version_task import issue_description_version_task
 from plane.utils.host import base_host
+from plane.utils.issue_ws import broadcast_issue_event, broadcast_issue_updates
 
 
 class IssueListEndpoint(BaseAPIView):
@@ -202,24 +201,21 @@ class IssueViewSet(BaseViewSet):
 
     filterset_fields = ["state__name", "assignees__id", "workspace__id"]
 
-    def _send_issue_ws_event(self, project_id, payload_type: str, issue_payload: dict):
-        """Notify project group about issue create/update/delete."""
-        try:
-            channel_layer = get_channel_layer()
-            if channel_layer is None:
-                return
-            # Ensure JSON serializable payload (UUID/datetime -> str)
-            safe_payload = json.loads(json.dumps(issue_payload, cls=DjangoJSONEncoder))
-            async_to_sync(channel_layer.group_send)(
-                f"project_{project_id}",
-                {
-                    "type": "issue_update",
-                    "payload": {"type": payload_type, "data": safe_payload},
-                },
-            )
-        except Exception:
-            # Do not fail API flow on websocket errors
-            pass
+    def _broadcast_issue_updates(
+        self,
+        slug: str,
+        project_id: str,
+        issue_ids: list[str] | tuple[str, ...],
+        payload_type: str,
+    ):
+        """Helper to fan-out refreshed issue payloads over websockets."""
+        broadcast_issue_updates(
+            slug=slug,
+            project_id=project_id,
+            issue_ids=issue_ids,
+            user_timezone=getattr(self.request.user, "user_timezone", None),
+            payload_type=payload_type,
+        )
 
     def get_queryset(self):
         return (
@@ -465,7 +461,12 @@ class IssueViewSet(BaseViewSet):
             )
             # WS: broadcast created
             try:
-                self._send_issue_ws_event(project_id, "issue.created", issue)
+                self._broadcast_issue_updates(
+                    slug,
+                    project_id,
+                    [str(serializer.data.get("id"))],
+                    "issue.created",
+                )
             except Exception:
                 pass
             # Send the model activity
@@ -756,7 +757,12 @@ class IssueViewSet(BaseViewSet):
                     updated_issue = user_timezone_converter(
                         updated_issue, ["created_at", "updated_at"], request.user.user_timezone
                     )
-                    self._send_issue_ws_event(project_id, "issue.updated", updated_issue)
+                    self._broadcast_issue_updates(
+                        slug,
+                        project_id,
+                        [str(pk)],
+                        "issue.updated",
+                    )
             except Exception:
                 pass
             # updated issue description version
@@ -794,7 +800,11 @@ class IssueViewSet(BaseViewSet):
         )
         # WS: broadcast deleted
         try:
-            self._send_issue_ws_event(project_id, "issue.deleted", {"id": str(pk), "project_id": str(project_id)})
+            broadcast_issue_event(
+                project_id,
+                "issue.deleted",
+                {"id": str(pk), "project_id": str(project_id)},
+            )
         except Exception:
             pass
         return Response(status=status.HTTP_204_NO_CONTENT)
