@@ -123,6 +123,7 @@ export const DisplayFiltersSelection: React.FC<Props> = observer((props) => {
           <FilterExtraOptions
             selectedExtraOptions={{
               show_empty_groups: displayFilters?.show_empty_groups ?? true,
+              show_empty_sub_groups: displayFilters?.show_empty_sub_groups ?? true,
               sub_issue: displayFilters?.sub_issue ?? true,
             }}
             handleUpdate={(key, val) =>

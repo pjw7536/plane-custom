@@ -1004,7 +1004,8 @@
       },
       "extra": {
         "show_sub_issues": "Tampilkan sub-item kerja",
-        "show_empty_groups": "Tampilkan grup kosong"
+        "show_empty_groups": "Tampilkan grup kosong",
+        "show_empty_sub_groups": "Tampilkan grup kosong (sub groups)"
       }
     },
     "layouts": {
@@ -2485,7 +2486,6 @@
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "Pilih View Logs dari setup.sh dan log Docker untuk memastikan."
   },
   "no_of": "Jumlah {entity}",
-
   "page_navigation_pane": {
     "tabs": {
       "outline": {

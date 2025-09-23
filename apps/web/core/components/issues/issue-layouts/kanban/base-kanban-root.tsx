@@ -107,6 +107,8 @@ export const BaseKanBanRoot: React.FC<IBaseKanBanLayout> = observer((props: IBas
   const groupedIssueIds = issues?.groupedIssueIds;
 
   const userDisplayFilters = displayFilters || null;
+  const showEmptyGroup = userDisplayFilters?.show_empty_groups ?? true;
+  const showEmptySubGroup = userDisplayFilters?.show_empty_sub_groups ?? true;
 
   const KanBanView = sub_group_by ? KanBanSwimLanes : KanBan;
 
@@ -284,7 +286,8 @@ export const BaseKanBanRoot: React.FC<IBaseKanBanLayout> = observer((props: IBas
                 handleCollapsedGroups={handleCollapsedGroups}
                 collapsedGroups={collapsedGroups}
                 enableQuickIssueCreate={enableQuickAdd}
-                showEmptyGroup={userDisplayFilters?.show_empty_groups ?? true}
+                showEmptyGroup={showEmptyGroup}
+                showEmptySubGroup={showEmptySubGroup}
                 quickAddCallback={quickAddIssue}
                 disableIssueCreation={!enableIssueCreation || !isEditingAllowed || isCompletedCycle}
                 canEditProperties={canEditProperties}

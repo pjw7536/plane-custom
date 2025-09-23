@@ -60,6 +60,7 @@ export interface IKanBan {
   scrollableContainerRef?: MutableRefObject<HTMLDivElement | null>;
   handleOnDrop: (source: GroupDropLocation, destination: GroupDropLocation) => Promise<void>;
   showEmptyGroup?: boolean;
+  showEmptySubGroup?: boolean;
   subGroupIndex?: number;
   isEpic?: boolean;
 }

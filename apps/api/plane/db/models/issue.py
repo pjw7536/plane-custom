@@ -58,6 +58,7 @@ def get_default_display_filters():
         "type": None,
         "sub_issue": True,
         "show_empty_groups": True,
+        "show_empty_sub_groups": True,
         "layout": "list",
         "calendar_date_range": "",
     }

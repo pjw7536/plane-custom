@@ -849,7 +849,8 @@
       },
       "extra": {
         "show_sub_issues": "Show sub-work items",
-        "show_empty_groups": "Show empty groups"
+        "show_empty_groups": "Show empty groups",
+    "show_empty_sub_groups": "Show empty sub groups"
       }
     },
     "layouts": {
@@ -2368,7 +2369,6 @@
     "plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start": "Plane didn't start up. This could be because one or more Plane services failed to start.",
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "Choose View Logs from setup.sh and Docker logs to be sure."
   },
-
   "page_navigation_pane": {
     "tabs": {
       "outline": {

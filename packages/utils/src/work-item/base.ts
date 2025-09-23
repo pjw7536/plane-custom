@@ -289,6 +289,7 @@ export const getComputedDisplayFilters = (
     type: filters?.type || null,
     sub_issue: filters?.sub_issue || false,
     show_empty_groups: filters?.show_empty_groups || false,
+    show_empty_sub_groups: filters?.show_empty_sub_groups || false,
   };
 };
 

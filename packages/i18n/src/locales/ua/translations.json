@@ -1006,7 +1006,8 @@
       },
       "extra": {
         "show_sub_issues": "Показати похідні робочі одиниці",
-        "show_empty_groups": "Показати порожні групи"
+        "show_empty_groups": "Показати порожні групи",
+        "show_empty_sub_groups": "Показати порожні групи (sub groups)"
       }
     },
     "layouts": {
@@ -2491,7 +2492,6 @@
     "plane_didnt_start_up_this_could_be_because_one_or_more_plane_services_failed_to_start": "Plane не запустився. Це може бути через те, що один або декілька сервісів Plane не змогли запуститися.",
     "choose_view_logs_from_setup_sh_and_docker_logs_to_be_sure": "Виберіть View Logs з setup.sh та логів Docker, щоб переконатися."
   },
-
   "page_navigation_pane": {
     "tabs": {
       "outline": {

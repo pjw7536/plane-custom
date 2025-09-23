@@ -49,7 +49,7 @@ export type TIssueOrderByOptions =
 
 export type TIssueGroupingFilters = "active" | "backlog" | null;
 
-export type TIssueExtraOptions = "show_empty_groups" | "sub_issue";
+export type TIssueExtraOptions = "show_empty_groups" | "show_empty_sub_groups" | "sub_issue";
 
 export type TIssueParams =
   | "priority"
@@ -72,6 +72,7 @@ export type TIssueParams =
   | "type"
   | "sub_issue"
   | "show_empty_groups"
+  | "show_empty_sub_groups"
   | "cursor"
   | "per_page"
   | "issue_type"
@@ -108,6 +109,7 @@ export interface IIssueDisplayFilterOptions {
   layout?: any; // TODO: Need to fix this and set it to enum EIssueLayoutTypes
   order_by?: TIssueOrderByOptions;
   show_empty_groups?: boolean;
+  show_empty_sub_groups?: boolean;
   sub_issue?: boolean;
   type?: TIssueGroupingFilters;
 }

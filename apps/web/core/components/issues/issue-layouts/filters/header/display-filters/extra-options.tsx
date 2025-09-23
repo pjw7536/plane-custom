@@ -11,19 +11,24 @@ const ISSUE_EXTRA_OPTIONS: {
   titleTranslationKey: string;
 }[] = [
   {
-    key: "sub_issue",
-    titleTranslationKey: "issue.display.extra.show_sub_issues",
-  }, // in spreadsheet its always false
-  {
     key: "show_empty_groups",
     titleTranslationKey: "issue.display.extra.show_empty_groups",
   }, // filter on front-end
+  {
+    key: "show_empty_sub_groups",
+    titleTranslationKey: "issue.display.extra.show_empty_sub_groups",
+  },
+  {
+    key: "sub_issue",
+    titleTranslationKey: "issue.display.extra.show_sub_issues",
+  }, // in spreadsheet its always false
 ];
 
 type Props = {
   selectedExtraOptions: {
     sub_issue: boolean;
     show_empty_groups: boolean;
+    show_empty_sub_groups: boolean;
   };
   handleUpdate: (key: keyof IIssueDisplayFilterOptions, val: boolean) => void;
   enabledExtraOptions: TIssueExtraOptions[];

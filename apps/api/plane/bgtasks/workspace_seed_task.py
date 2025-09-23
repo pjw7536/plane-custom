@@ -121,6 +121,7 @@ def create_project_and_member(workspace: Workspace) -> Dict[int, uuid.UUID]:
                         "type": None,
                         "sub_issue": True,
                         "show_empty_groups": True,
+                        "show_empty_sub_groups": True,
                         "layout": "list",
                         "calendar_date_range": "",
                     },

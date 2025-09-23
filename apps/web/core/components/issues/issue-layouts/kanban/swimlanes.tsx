@@ -97,7 +97,6 @@ interface ISubGroupSwimlane extends ISubGroupSwimlaneHeader {
     subGroupId: string | undefined,
     isSubGroupCumulative: boolean
   ) => number | undefined;
-  showEmptyGroup: boolean;
   displayProperties: IIssueDisplayProperties | undefined;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
   quickActions: TRenderQuickActions;
@@ -112,6 +111,7 @@ interface ISubGroupSwimlane extends ISubGroupSwimlaneHeader {
   quickAddCallback?: (projectId: string | null | undefined, data: TIssue) => Promise<TIssue | undefined>;
   scrollableContainerRef?: MutableRefObject<HTMLDivElement | null>;
   loadMoreIssues: (groupId?: string, subGroupId?: string) => void;
+  showEmptySubGroup: boolean;
 }
 
 const SubGroupSwimlane: React.FC<ISubGroupSwimlane> = observer((props) => {
@@ -129,6 +129,7 @@ const SubGroupSwimlane: React.FC<ISubGroupSwimlane> = observer((props) => {
     handleCollapsedGroups,
     loadMoreIssues,
     showEmptyGroup,
+    showEmptySubGroup,
     enableQuickIssueCreate,
     disableIssueCreation,
     canEditProperties,
@@ -147,7 +148,7 @@ const SubGroupSwimlane: React.FC<ISubGroupSwimlane> = observer((props) => {
       showGroup: true,
       showIssues: true,
     };
-    if (showEmptyGroup) subGroupVisibility.showGroup = true;
+    if (showEmptySubGroup) subGroupVisibility.showGroup = true;
     else {
       if (subGroupCount > 0) subGroupVisibility.showGroup = true;
       else subGroupVisibility.showGroup = false;
@@ -234,6 +235,7 @@ export interface IKanBanSwimLanes {
   handleCollapsedGroups: (toggle: "group_by" | "sub_group_by", value: string) => void;
   loadMoreIssues: (groupId?: string, subGroupId?: string) => void;
   showEmptyGroup: boolean;
+  showEmptySubGroup: boolean;
   handleOnDrop: (source: GroupDropLocation, destination: GroupDropLocation) => Promise<void>;
   disableIssueCreation?: boolean;
   addIssuesToView?: (issueIds: string[]) => Promise<TIssue>;
@@ -259,6 +261,7 @@ export const KanBanSwimLanes: React.FC<IKanBanSwimLanes> = observer((props) => {
     handleCollapsedGroups,
     loadMoreIssues,
     showEmptyGroup,
+    showEmptySubGroup,
     handleOnDrop,
     disableIssueCreation,
     enableQuickIssueCreate,
@@ -313,6 +316,7 @@ export const KanBanSwimLanes: React.FC<IKanBanSwimLanes> = observer((props) => {
           handleCollapsedGroups={handleCollapsedGroups}
           loadMoreIssues={loadMoreIssues}
           showEmptyGroup={showEmptyGroup}
+          showEmptySubGroup={showEmptySubGroup}
           handleOnDrop={handleOnDrop}
           disableIssueCreation={disableIssueCreation}
           enableQuickIssueCreate={enableQuickIssueCreate}
